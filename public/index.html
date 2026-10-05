@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PalgharBites — Nearby Food. Easy Ordering.</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="toast-container"></div>
+
+<!-- ============ AUTH VIEW ============ -->
+<div id="view-auth" class="view hidden">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-brand">🍽️ <span>Palghar<em>Bites</em></span></div>
+      <p class="auth-tag">Nearby Food. Easy Ordering. Collect at College.</p>
+      <div class="role-tabs">
+        <button class="role-tab active" data-role="student">🎓 Student</button>
+        <button class="role-tab" data-role="hotel">🏨 Hotel</button>
+        <button class="role-tab" data-role="delivery">🛵 Delivery</button>
+        <button class="role-tab" data-role="admin">🛡️ Admin</button>
+      </div>
+      <div id="auth-error" class="auth-error hidden"></div>
+      <input id="auth-email" type="email" placeholder="Email address">
+      <input id="auth-pass" type="password" placeholder="Password">
+      <button id="btn-login" class="btn btn-primary btn-full">Login</button>
+      <div class="auth-sep">New student? <a id="auth-toggle">Create account</a></div>
+      <div id="register-fields" class="hidden">
+        <input id="reg-name" type="text" placeholder="Full name">
+        <input id="reg-phone" type="tel" placeholder="Phone number">
+        <button id="btn-register" class="btn btn-outline btn-full">Register as Student</button>
+      </div>
+      <div class="demo-box">
+        <b>Demo accounts (development only):</b><br>
+        🎓 student@palgharbites.com / student123<br>
+        🏨 devi@palgharbites.com / hotel123 · badshah@… / hotel123 · topcake@… / hotel123<br>
+        🛵 delivery@palgharbites.com / delivery123 · 🛡️ admin@palgharbites.com / admin123
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ STUDENT APP ============ -->
+<div id="view-student" class="view hidden">
+  <header class="topbar">
+    <div class="topbar-left"><span class="logo">🍽️ Palghar<em>Bites</em></span><span class="loc">📍 St. John College</span></div>
+    <div class="topbar-right">
+      <button class="icon-btn" data-goto="notifications">🔔<span id="notif-badge" class="badge hidden"></span></button>
+      <button class="btn btn-outline btn-sm" id="btn-logout">Logout</button>
+    </div>
+  </header>
+  <main class="main" id="student-main"></main>
+  <nav class="bottom-nav">
+    <button data-goto="home" class="active">🏠<span>Home</span></button>
+    <button data-goto="explore">🔎<span>Explore</span></button>
+    <button data-goto="cart">🛒<span>Cart<b id="cart-count" class="mini-badge hidden"></b></span></button>
+    <button data-goto="orders">📦<span>Orders</span></button>
+    <button data-goto="profile">👤<span>Profile</span></button>
+  </nav>
+</div>
+
+<!-- ============ HOTEL APP ============ -->
+<div id="view-hotel" class="view hidden">
+  <header class="topbar">
+    <div class="topbar-left"><span class="logo">🍽️ Palghar<em>Bites</em> <small>Hotel Dashboard</small></span></div>
+    <button class="btn btn-outline btn-sm" id="btn-logout-h">Logout</button>
+  </header>
+  <main class="main" id="hotel-main"></main>
+</div>
+
+<!-- ============ DELIVERY APP ============ -->
+<div id="view-delivery" class="view hidden">
+  <header class="topbar">
+    <div class="topbar-left"><span class="logo">🛵 Palghar<em>Bites</em> <small>Delivery</small></span></div>
+    <button class="btn btn-outline btn-sm" id="btn-logout-d">Logout</button>
+  </header>
+  <main class="main" id="delivery-main"></main>
+</div>
+
+<!-- ============ ADMIN APP ============ -->
+<div id="view-admin" class="view hidden">
+  <header class="topbar">
+    <div class="topbar-left"><span class="logo">🛡️ Palghar<em>Bites</em> <small>Admin</small></span></div>
+    <button class="btn btn-outline btn-sm" id="btn-logout-a">Logout</button>
+  </header>
+  <nav class="admin-tabs">
+    <button data-tab="overview" class="active">Overview</button>
+    <button data-tab="orders">Orders</button>
+    <button data-tab="users">Users</button>
+    <button data-tab="hotels">Hotels</button>
+    <button data-tab="payments">Payments</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+  <main class="main" id="admin-main"></main>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
