@@ -24,15 +24,9 @@ const APP_URL = (
   process.env.APP_URL || `http://localhost:${PORT}`
 ).replace(/\/$/, '');
 
-const mailer = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_SECURE,
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASSWORD
-  }
-});
+const { Resend } = require("resend");
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -91,11 +85,12 @@ async function sendVerificationEmail(email, name, token) {
   const verificationUrl =
     `${APP_URL}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
 
-  await mailer.sendMail({
-    from: SMTP_FROM,
-    to: email,
-    subject: 'Verify your PalgharBites account',
-    text: `Hello ${name},
+  await resend.emails.send({
+  from: 'PalgharBites <onboarding@resend.dev>',
+  to: email,
+  subject: 'Verify your PalgharBites account',
+
+  text: `Hello ${name},
 
 Thank you for registering with PalgharBites.
 
@@ -108,56 +103,59 @@ This verification link will expire in 30 minutes.
 If you did not create this account, you can ignore this email.
 
 PalgharBites`,
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;background:#f8f8f8;">
-        <div style="background:#ffffff;border-radius:14px;padding:28px;">
-          <h2 style="margin-top:0;color:#222;">
-            🍽️ Palghar<span style="color:#f97316;">Bites</span>
-          </h2>
 
-          <h3>Verify your email address</h3>
+  html: `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;background:#f8f8f8;">
+      <div style="background:#ffffff;border-radius:14px;padding:28px;">
 
-          <p>Hello <b>${escapeHtml(name)}</b>,</p>
+        <h2 style="margin-top:0;color:#222;">
+          🍽️ Palghar<span style="color:#f97316;">Bites</span>
+        </h2>
 
-          <p>
-            Thank you for creating your PalgharBites student account.
-            Please verify your email address before logging in.
-          </p>
+        <h3>Verify your email address</h3>
 
-          <div style="text-align:center;margin:28px 0;">
-            <a
-              href="${verificationUrl}"
-              style="
-                display:inline-block;
-                background:#f97316;
-                color:#ffffff;
-                text-decoration:none;
-                padding:13px 24px;
-                border-radius:8px;
-                font-weight:bold;
-              "
-            >
-              Verify My Email
-            </a>
-          </div>
+        <p>Hello <b>${escapeHtml(name)}</b>,</p>
 
-          <p style="font-size:13px;color:#666;">
-            This verification link will expire in <b>30 minutes</b>.
-          </p>
+        <p>
+          Thank you for creating your PalgharBites student account.
+          Please verify your email address before logging in.
+        </p>
 
-          <p style="font-size:13px;color:#666;">
-            If you did not create this account, you can safely ignore this email.
-          </p>
-
-          <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
-
-          <p style="font-size:12px;color:#888;">
-            PalgharBites — College Food Ordering Platform
-          </p>
+        <div style="text-align:center;margin:28px 0;">
+          <a
+            href="${verificationUrl}"
+            style="
+              display:inline-block;
+              background:#f97316;
+              color:#ffffff;
+              text-decoration:none;
+              padding:13px 24px;
+              border-radius:8px;
+              font-weight:bold;
+            "
+          >
+            Verify My Email
+          </a>
         </div>
+
+        <p style="font-size:13px;color:#666;">
+          This verification link will expire in <b>30 minutes</b>.
+        </p>
+
+        <p style="font-size:13px;color:#666;">
+          If you did not create this account, you can safely ignore this email.
+        </p>
+
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
+
+        <p style="font-size:12px;color:#888;">
+          PalgharBites — College Food Ordering Platform
+        </p>
+
       </div>
-    `
-  });
+    </div>
+  `
+});
 }
 
 // ---------------- AUTH API ----------------
