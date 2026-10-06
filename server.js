@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const path = require('path');
+const nodemailer = require('nodemailer');
 const db = require('./db');
 
 const app = express();
@@ -11,6 +12,27 @@ const PORT = process.env.PORT || 3000;
 const SECRET = process.env.SESSION_SECRET || 'palgharbites_dev_secret_change_me';
 const RZP_KEY_ID = process.env.RAZORPAY_KEY_ID || '';
 const RZP_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
+
+const SMTP_HOST = process.env.SMTP_HOST || '';
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_SECURE = String(process.env.SMTP_SECURE || 'false') === 'true';
+const SMTP_USER = process.env.SMTP_USER || '';
+const SMTP_PASSWORD = process.env.SMTP_PASSWORD || '';
+const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER;
+
+const APP_URL = (
+  process.env.APP_URL || `http://localhost:${PORT}`
+).replace(/\/$/, '');
+
+const mailer = nodemailer.createTransport({
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: SMTP_SECURE,
+  auth: {
+    user: SMTP_USER,
+    pass: SMTP_PASSWORD
+  }
+});
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -56,22 +78,323 @@ function verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, signature) 
   return expected === signature;
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+async function sendVerificationEmail(email, name, token) {
+  const verificationUrl =
+    `${APP_URL}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
+
+  await mailer.sendMail({
+    from: SMTP_FROM,
+    to: email,
+    subject: 'Verify your PalgharBites account',
+    text: `Hello ${name},
+
+Thank you for registering with PalgharBites.
+
+Please verify your email address by opening this link:
+
+${verificationUrl}
+
+This verification link will expire in 30 minutes.
+
+If you did not create this account, you can ignore this email.
+
+PalgharBites`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;background:#f8f8f8;">
+        <div style="background:#ffffff;border-radius:14px;padding:28px;">
+          <h2 style="margin-top:0;color:#222;">
+            🍽️ Palghar<span style="color:#f97316;">Bites</span>
+          </h2>
+
+          <h3>Verify your email address</h3>
+
+          <p>Hello <b>${escapeHtml(name)}</b>,</p>
+
+          <p>
+            Thank you for creating your PalgharBites student account.
+            Please verify your email address before logging in.
+          </p>
+
+          <div style="text-align:center;margin:28px 0;">
+            <a
+              href="${verificationUrl}"
+              style="
+                display:inline-block;
+                background:#f97316;
+                color:#ffffff;
+                text-decoration:none;
+                padding:13px 24px;
+                border-radius:8px;
+                font-weight:bold;
+              "
+            >
+              Verify My Email
+            </a>
+          </div>
+
+          <p style="font-size:13px;color:#666;">
+            This verification link will expire in <b>30 minutes</b>.
+          </p>
+
+          <p style="font-size:13px;color:#666;">
+            If you did not create this account, you can safely ignore this email.
+          </p>
+
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
+
+          <p style="font-size:12px;color:#888;">
+            PalgharBites — College Food Ordering Platform
+          </p>
+        </div>
+      </div>
+    `
+  });
+}
+
 // ---------------- AUTH API ----------------
-app.post('/api/auth/register', (req, res) => {
+app.get('/api/auth/verify-email', (req, res) => {
   try {
-    const { name, email, password, phone, role } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ error: 'Name, email and password are required.' });
-    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters.' });
-    const r = (role === 'student') ? 'student' : 'student'; // public registration = students only
-    const exists = db.prepare('SELECT id FROM users WHERE email=?').get(email.toLowerCase());
-    if (exists) return res.status(409).json({ error: 'An account with this email already exists.' });
-    const id = db.prepare('INSERT INTO users (name,email,password_hash,phone,role,status) VALUES (?,?,?,?,?,?)')
-      .run(name, email.toLowerCase(), bcrypt.hashSync(password, 10), phone || '', r, 'active').lastInsertRowid;
-    db.prepare('INSERT INTO student_profiles (user_id) VALUES (?)').run(id);
-    const user = { id, name, email: email.toLowerCase(), role: r };
-    res.json({ token: sign(user), user });
+    const token = String(req.query.token || '');
+
+    if (!token) {
+      return res.status(400).send(`
+        <h2>Email verification failed</h2>
+        <p>Verification token is missing.</p>
+      `);
+    }
+
+    const user = db.prepare(`
+      SELECT id, name, email, email_verified, verification_expires_at
+      FROM users
+      WHERE verification_token=?
+    `).get(token);
+
+    if (!user) {
+      return res.status(400).send(`
+        <h2>Invalid verification link</h2>
+        <p>This verification link is invalid or has already been used.</p>
+      `);
+    }
+
+    if (Number(user.email_verified) === 1) {
+      return res.send(`
+        <h2>Email already verified ✅</h2>
+        <p>Your PalgharBites account is already verified.</p>
+        <p><a href="${APP_URL}">Go to PalgharBites</a></p>
+      `);
+    }
+
+    if (
+      !user.verification_expires_at ||
+      new Date(user.verification_expires_at).getTime() < Date.now()
+    ) {
+      return res.status(400).send(`
+        <h2>Verification link expired</h2>
+        <p>This verification link has expired. Please register again.</p>
+      `);
+    }
+
+    db.prepare(`
+      UPDATE users
+      SET
+        email_verified=1,
+        verification_token=NULL,
+        verification_expires_at=NULL
+      WHERE id=?
+    `).run(user.id);
+
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Email Verified - PalgharBites</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            background: #f8f8f8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+          }
+
+          .card {
+            background: white;
+            padding: 35px;
+            border-radius: 16px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 5px 25px rgba(0,0,0,.08);
+          }
+
+          h1 {
+            margin-bottom: 10px;
+          }
+
+          p {
+            color: #666;
+            line-height: 1.5;
+          }
+
+          a {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 22px;
+            background: #f97316;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+          }
+        </style>
+      </head>
+
+      <body>
+        <div class="card">
+          <h1>🎉 Email Verified!</h1>
+
+          <p>
+            Your PalgharBites account has been successfully verified.
+          </p>
+
+          <p>
+            You can now log in using your email and password.
+          </p>
+
+          <a href="${APP_URL}">
+            Go to PalgharBites
+          </a>
+        </div>
+      </body>
+      </html>
+    `);
+
+  } catch (error) {
+    console.error('Email verification error:', error);
+
+    res.status(500).send(`
+      <h2>Verification failed</h2>
+      <p>Something went wrong. Please try again later.</p>
+    `);
+  }
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { name, email, password, phone } = req.body;
+
+    if (!name || !email || !password || !phone) {
+      return res.status(400).json({
+        error: 'Name, email, password and mobile number are required.'
+      });
+    }
+
+    if (!/^[0-9]{10}$/.test(String(phone).trim())) {
+      return res.status(400).json({
+        error: 'Please enter a valid 10-digit mobile number.'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: 'Password must be at least 6 characters.'
+      });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    const exists = db
+      .prepare('SELECT id FROM users WHERE email=?')
+      .get(normalizedEmail);
+
+    if (exists) {
+      return res.status(409).json({
+        error: 'An account with this email already exists.'
+      });
+    }
+
+    const verificationToken = crypto
+      .randomBytes(32)
+      .toString('hex');
+
+    const verificationExpiresAt =
+      new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+    const passwordHash = bcrypt.hashSync(password, 10);
+
+    const id = db.prepare(`
+      INSERT INTO users (
+        name,
+        email,
+        password_hash,
+        phone,
+        role,
+        status,
+        email_verified,
+        verification_token,
+        verification_expires_at
+      )
+      VALUES (?, ?, ?, ?, 'student', 'active', 0, ?, ?)
+    `).run(
+      String(name).trim(),
+      normalizedEmail,
+      passwordHash,
+      String(phone).trim(),
+      verificationToken,
+      verificationExpiresAt
+    ).lastInsertRowid;
+
+    db.prepare(
+      'INSERT INTO student_profiles (user_id) VALUES (?)'
+    ).run(id);
+
+    try {
+      await sendVerificationEmail(
+        normalizedEmail,
+        String(name).trim(),
+        verificationToken
+      );
+    } catch (mailError) {
+      console.error('Verification email failed:', mailError);
+
+      db.prepare(
+        'DELETE FROM student_profiles WHERE user_id=?'
+      ).run(id);
+
+      db.prepare(
+        'DELETE FROM users WHERE id=?'
+      ).run(id);
+
+      return res.status(500).json({
+        error: 'Unable to send verification email. Please check your email address or try again later.'
+      });
+    }
+
+    res.json({
+      ok: true,
+      requiresVerification: true,
+      message: 'Registration successful. Please check your email and verify your account before logging in.'
+    });
+
   } catch (e) {
-    res.status(500).json({ error: 'Registration failed. Please try again.' });
+    console.error('Registration error:', e);
+
+    res.status(500).json({
+      error: 'Registration failed. Please try again.'
+    });
   }
 });
 
@@ -83,6 +406,11 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid email or password.' });
   }
   if (user.status !== 'active') return res.status(403).json({ error: 'Your account has been deactivated.' });
+  if (user.role === 'student' && Number(user.email_verified) !== 1) {
+  return res.status(403).json({
+    error: 'Please verify your email before logging in. Check your inbox for the verification email.'
+  });
+}
   res.json({ token: sign(user), user: { id: user.id, name: user.name, email: user.email, role: user.role } });
 });
 

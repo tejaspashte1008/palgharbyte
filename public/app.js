@@ -32,8 +32,16 @@ const statusLabel = (s) => s.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c
 const badge = (s) => `<span class="badge-status st-${esc(s)}">${statusLabel(s)}</span>`;
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80';
-const foodImg = (f) => `<img src="${esc(f.image_url || PLACEHOLDER)}" alt="${esc(f.image_alt || f.name)}" loading="lazy" onerror="this.src='${PLACEHOLDER}'">`;
 
+const foodImg = (f, className = '') => `
+  <img
+    class="${className}"
+    src="${esc(f.image_url || PLACEHOLDER)}"
+    alt="${esc(f.image_alt || f.name)}"
+    loading="lazy"
+    onerror="this.src='${PLACEHOLDER}'"
+  >
+`;
 // ---------- Views switching ----------
 function show(id) {
   $$('.view').forEach(v => v.classList.add('hidden'));
@@ -56,7 +64,17 @@ $$('.role-tab').forEach(b => b.onclick = () => {
   $$('.role-tab').forEach(x => x.classList.remove('active'));
   b.classList.add('active');
 });
-$('#auth-toggle').onclick = () => $('#register-fields').classList.toggle('hidden');
+$('#auth-toggle').onclick = () => {
+  show('register');
+
+  $('#register-error').classList.add('hidden');
+
+  $('#reg-name').value = '';
+  $('#reg-phone').value = '';
+  $('#reg-email').value = $('#auth-email').value || '';
+  $('#reg-password').value = '';
+  $('#reg-confirm-password').value = '';
+};
 $('#btn-login').onclick = async () => {
   try {
     $('#auth-error').classList.add('hidden');
@@ -72,16 +90,71 @@ $('#btn-login').onclick = async () => {
   }
 };
 $('#btn-register').onclick = async () => {
+  const errorBox = $('#register-error');
+
   try {
-    $('#auth-error').classList.add('hidden');
-    const data = await api('/auth/register', { method: 'POST', body: JSON.stringify({
-      name: $('#reg-name').value, email: $('#auth-email').value, password: $('#auth-pass').value, phone: $('#reg-phone').value, role: 'student' }) });
-    token = data.token; user = data.user;
-    localStorage.setItem('pb_token', token); localStorage.setItem('pb_user', JSON.stringify(user));
-    toast('Account created! Welcome to PalgharBites 🎉', 'success');
-    routeByRole();
+    errorBox.classList.add('hidden');
+
+    const name = $('#reg-name').value.trim();
+    const phone = $('#reg-phone').value.trim();
+    const email = $('#reg-email').value.trim();
+    const password = $('#reg-password').value;
+    const confirmPassword = $('#reg-confirm-password').value;
+
+    if (!name || !phone || !email || !password || !confirmPassword) {
+      throw new Error('Please fill in all registration fields.');
+    }
+
+    if (!/^[0-9]{10}$/.test(phone)) {
+      throw new Error('Please enter a valid 10-digit mobile number.');
+    }
+
+    if (password.length < 6) {
+      throw new Error('Password must be at least 6 characters.');
+    }
+
+    if (password !== confirmPassword) {
+      throw new Error('Password and confirm password do not match.');
+    }
+
+    const button = $('#btn-register');
+
+    button.disabled = true;
+    button.textContent = 'Creating Account...';
+
+    await api('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        phone,
+        email,
+        password,
+        role: 'student'
+      })
+    });
+
+    button.disabled = false;
+    button.textContent = 'Create Student Account';
+
+    show('auth');
+
+    $('#auth-email').value = email;
+    $('#auth-pass').value = '';
+
+    $('#auth-error').textContent =
+      'Registration successful! We sent a verification link to your email. Please verify your email before logging in.';
+
+    $('#auth-error').classList.remove('hidden');
+
+    toast('Verification email sent! 📧', 'success');
+
   } catch (e) {
-    const el = $('#auth-error'); el.textContent = e.message; el.classList.remove('hidden');
+
+    $('#btn-register').disabled = false;
+    $('#btn-register').textContent = 'Create Student Account';
+
+    errorBox.textContent = e.message;
+    errorBox.classList.remove('hidden');
   }
 };
 $('#btn-logout').onclick = logout; $('#btn-logout-h').onclick = logout;
@@ -255,7 +328,7 @@ async function studentCart() {
     ${c.items.map(i => `
       <div class="order-card">
         <div class="row-between">
-          <div class="row">${foodImg(i)}<div><b>${esc(i.name)}</b><br><span class="muted">${esc(i.hotel_name)} · ${money(i.price)} each</span></div></div>
+          <div class="row">${foodImg(i,'cart-food-img')}<div><b>${esc(i.name)}</b><br><span class="muted">${esc(i.hotel_name)} · ${money(i.price)} each</span></div></div>
           <div class="qty-ctrl">
             <button data-dec="${i.id}">−</button><b>${i.quantity}</b><button data-inc="${i.id}">+</button>
           </div>
@@ -677,3 +750,8 @@ setInterval(async () => {
 // ---------- BOOT ----------
 if (token && user) routeByRole(); else show('auth');
 window.go = go; window.openFood = openFood; window.openHotel = openHotel; window.openTracking = openTracking;
+
+$('#btn-back-login').onclick = () => {
+  show('auth');
+  $('#register-error').classList.add('hidden');
+};

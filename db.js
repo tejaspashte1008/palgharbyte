@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS users (
   phone TEXT,
   role TEXT NOT NULL CHECK(role IN ('student','hotel','delivery','admin')),
   status TEXT NOT NULL DEFAULT 'active',
+
+  email_verified INTEGER NOT NULL DEFAULT 0,
+  verification_token TEXT,
+  verification_expires_at TEXT,
+
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS student_profiles (
@@ -143,6 +148,33 @@ CREATE INDEX IF NOT EXISTS idx_orders_delivery ON orders(delivery_boy_id);
 CREATE INDEX IF NOT EXISTS idx_food_hotel ON food_items(hotel_id);
 CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id);
 `);
+
+// ---------- EMAIL VERIFICATION MIGRATION ----------
+function addColumnIfMissing(table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+
+  if (!columns.some(c => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+addColumnIfMissing(
+  'users',
+  'email_verified',
+  'INTEGER NOT NULL DEFAULT 0'
+);
+
+addColumnIfMissing(
+  'users',
+  'verification_token',
+  'TEXT'
+);
+
+addColumnIfMissing(
+  'users',
+  'verification_expires_at',
+  'TEXT'
+);
 
 // ---------- SEED ----------
 function seed() {

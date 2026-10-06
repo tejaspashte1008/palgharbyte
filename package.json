@@ -1,7 +1,7 @@
 {
   "name": "palgharbites",
   "version": "1.0.0",
-  "description": "PalgharBites - College Food Ordering & Gate Delivery Platform (single-folder full-stack app)",
+  "description": "PalgharBites - College Food Ordering & Gate Delivery Platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,6 +13,7 @@
     "better-sqlite3": "^13.0.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^7.0.13"
   }
 }

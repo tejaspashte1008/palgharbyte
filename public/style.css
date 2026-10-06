@@ -78,6 +78,16 @@ img { object-fit: cover; }
 .food-card:hover, .hotel-card:hover { transform: translateY(-3px); }
 @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .food-card img { width: 100%; height: 130px; }
+.cart-food-img {
+  width: 62px !important;
+  height: 62px !important;
+  min-width: 62px !important;
+  max-width: 62px !important;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+  flex-shrink: 0;
+}
 .hotel-card img { width: 100%; height: 120px; }
 .card-body { padding: 11px 13px 13px; display: flex; flex-direction: column; gap: 5px; }
 .food-name { font-weight: 600; font-size: 14.5px; }

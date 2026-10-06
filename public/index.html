@@ -16,32 +16,110 @@
   <div class="auth-wrap">
     <div class="auth-card">
       <div class="auth-brand">🍽️ <span>Palghar<em>Bites</em></span></div>
-      <p class="auth-tag">Nearby Food. Easy Ordering. Collect at College.</p>
+      <p class="auth-tag">Nearby food ,Tasty Bites,Delicious Meal</p>
       <div class="role-tabs">
-        <button class="role-tab active" data-role="student">🎓 Student</button>
-        <button class="role-tab" data-role="hotel">🏨 Hotel</button>
-        <button class="role-tab" data-role="delivery">🛵 Delivery</button>
+        <button class="role-tab active" data-role="student">🎓  Student</button>
+        <button class="role-tab" data-role="hotel">🏨  Hotel</button>
+        <button class="role-tab" data-role="delivery">🛵  Delivery</button>
         <button class="role-tab" data-role="admin">🛡️ Admin</button>
       </div>
       <div id="auth-error" class="auth-error hidden"></div>
       <input id="auth-email" type="email" placeholder="Email address">
       <input id="auth-pass" type="password" placeholder="Password">
       <button id="btn-login" class="btn btn-primary btn-full">Login</button>
-      <div class="auth-sep">New student? <a id="auth-toggle">Create account</a></div>
-      <div id="register-fields" class="hidden">
-        <input id="reg-name" type="text" placeholder="Full name">
-        <input id="reg-phone" type="tel" placeholder="Phone number">
-        <button id="btn-register" class="btn btn-outline btn-full">Register as Student</button>
-      </div>
-      <div class="demo-box">
-        <b>Demo accounts (development only):</b><br>
-        🎓 student@palgharbites.com / student123<br>
-        🏨 devi@palgharbites.com / hotel123 · badshah@… / hotel123 · topcake@… / hotel123<br>
-        🛵 delivery@palgharbites.com / delivery123 · 🛡️ admin@palgharbites.com / admin123
-      </div>
+      <div class="auth-sep">
+  New student?
+  <a id="auth-toggle">Create account</a>
+</div>
+     
     </div>
   </div>
 </div>
+<!-- ================= REGISTER PAGE ================= -->
+<div id="view-register" class="view hidden">
+  <div class="auth-wrap">
+    <div class="auth-card">
+
+      <div class="auth-brand">
+        🍽️ <span>Palghar<em>Bites</em></span>
+      </div>
+
+      <p class="auth-tag">Create your student account</p>
+
+      <div class="register-header">
+        <h2>New Student Registration</h2>
+        <p>Enter your details to create your PalgharBites account.</p>
+      </div>
+
+      <div id="register-error" class="auth-error hidden"></div>
+
+      <label class="form-label">Full Name</label>
+      <input
+        id="reg-name"
+        type="text"
+        placeholder="Enter your full name"
+        autocomplete="name"
+      >
+
+      <label class="form-label">Mobile Number</label>
+      <input
+        id="reg-phone"
+        type="tel"
+        placeholder="10-digit mobile number"
+        maxlength="10"
+        autocomplete="tel"
+      >
+
+      <label class="form-label">Email ID</label>
+      <input
+        id="reg-email"
+        type="email"
+        placeholder="Enter your email address"
+        autocomplete="email"
+      >
+
+      <label class="form-label">Password</label>
+      <input
+        id="reg-password"
+        type="password"
+        placeholder="Create a password"
+        autocomplete="new-password"
+      >
+
+      <label class="form-label">Confirm Password</label>
+      <input
+        id="reg-confirm-password"
+        type="password"
+        placeholder="Re-enter your password"
+        autocomplete="new-password"
+      >
+
+      <button
+        id="btn-register"
+        class="btn btn-primary btn-full"
+      >
+        Create Student Account
+      </button>
+
+      <button
+        id="btn-back-login"
+        class="btn btn-outline btn-full"
+      >
+        ← Back to Login
+      </button>
+
+      <div class="verification-note">
+        📧 <b>Email verification required</b>
+        <p>
+          After registration, we will send a verification link to your
+          email address. You must verify your email before logging in.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 
 <!-- ============ STUDENT APP ============ -->
 <div id="view-student" class="view hidden">
